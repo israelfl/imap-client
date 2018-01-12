@@ -1,5 +1,7 @@
 <?php
 
+namespace israelfl\imapclient;
+
 /**
  * Helper class for imap access
  *
@@ -722,7 +724,7 @@ class Imap {
                 }
             }
 
-            // multipart 
+            // multipart
             if ($structure->type == 1) {
                 foreach ($structure->parts as $index => $subStruct) {
                     $prefix = "";
@@ -791,12 +793,12 @@ class Imap {
         } else if (isset($part->disposition)) {
             if (in_array(strtolower($part->disposition), array('attachment', 'inline'))) {
                 $partStruct = imap_bodystruct($imap, $mailNum, $partNum);
-                
+
                 $reference = isset($partStruct->id) ? $partStruct->id : "";
                 if (strtolower($part->disposition) == 'inline') {
                     $this->inline = true;
                 }
-                
+
                 $longName = '';
                 foreach ($part->dparameters as $paramItem) {
                     $longName .= $paramItem->value;
