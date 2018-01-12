@@ -1,21 +1,21 @@
 {
-	"name": "israelfl/imap",
-	"description": "Simple but powerful Imap client.",
-	"type": "php-class",
-	"keywords": ["php","class","imap","mail"],
-	"license": "MIT License",
-	"authors": [
-		{
-			"name": "Israel Falcón",
-			"email": "israel.falcon.android@gmail.com"
-		}
-	],
-	"require": {
-		"php": ">=5.6"
-	},
-	"autoload": {
-		"psr-4": {
-			"israelfl\\imapclient\\": ""
-		}
-	}
+    "name": "israelfl/imap-client",
+    "description": "Simple but powerful Imap client.",
+    "type": "php-class",
+    "keywords": ["php","class","imap","mail"],
+    "license": "MIT License",
+    "authors": [
+        {
+            "name": "Israel Falcón",
+            "email": "israel.falcon.android@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "israelfl\\imapclient\\": ""
+        }
+    }
 }
