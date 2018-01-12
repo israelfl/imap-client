@@ -241,6 +241,7 @@ class Imap {
             'subject'   => $subject,
             'priority'  => $priority,
             'uid'       => $uid,
+            'msgno'       => $id,
             'flagged'   => strlen(trim($header->Flagged))>0,
             'unread'    => strlen(trim($header->Unseen))>0,
             'answered'  => strlen(trim($header->Answered))>0,
@@ -390,7 +391,7 @@ class Imap {
 
         // get attachment body
         $partStruct = imap_bodystruct($this->imap, imap_msgno($this->imap, $id), $attachment['partNum']);
-        $filename = $partStruct->dparameters[0]->value; // @TODO this is not used
+        //$filename = $partStruct->dparameters[0]->value; // @TODO this is not used
         $message = imap_fetchbody($this->imap, $id, $attachment['partNum'], FT_UID);
 
         switch ($attachment['enc']) {
@@ -790,13 +791,20 @@ class Imap {
         } else if (isset($part->disposition)) {
             if (in_array(strtolower($part->disposition), array('attachment', 'inline'))) {
                 $partStruct = imap_bodystruct($imap, $mailNum, $partNum);
+                
                 $reference = isset($partStruct->id) ? $partStruct->id : "";
                 if (strtolower($part->disposition) == 'inline') {
                     $this->inline = true;
                 }
+                
+                $longName = '';
+                foreach ($part->dparameters as $paramItem) {
+                    $longName .= $paramItem->value;
+                }
+
 
                 $attachmentDetails = array(
-                    "name"          => $part->dparameters[0]->value,
+                    "name"          => $longName,
                     "partNum"       => $partNum,
                     "enc"           => $partStruct->encoding,
                     "size"          => $part->bytes,
@@ -812,9 +820,14 @@ class Imap {
             $reference = isset($partStruct->id) ? $partStruct->id : "";
             $disposition = empty($reference) ? 'attachment' : 'inline';
             if ($disposition == "inline") { $this->inline = true; }
-            if (isset($part->dparameters[0]->value)){
-                $name = $part->dparameters[0]->value;
-            } elseif ($part->parameters[0]->value) {
+
+            if ( $part->ifdparameters && count($part->dparameters)){
+                $name = '';
+                foreach ($part->dparameters as $paramItem) {
+                    $name .= $paramItem->value;
+                }
+                //$name = $part->dparameters[0]->value;
+            } elseif ($part->ifparameters && count($part->parameters)) {
                 $name = $part->parameters[0]->value;
             } else {
                 $name = "unknown";
