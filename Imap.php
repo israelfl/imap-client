@@ -115,10 +115,25 @@ class Imap {
      * @return array with foldernames
      */
     public function getFolders() {
-        $folders = imap_list($this->imap, $this->mailbox, "*");
+        $folders = imap_list( $this->imap, $this->mailbox, "*" );
+
         return str_replace($this->mailbox, "", $folders);
     }
 
+    /**
+     * returns all available folders with details
+     *
+     * @return array with folders information.
+     */
+    public function getFoldersDetails() {
+        $mailbox = $this->mailbox;
+        $folders = array_map( function( $item )  use ( $mailbox ) {
+            $item['name'] = imap_mutf7_to_utf8( str_replace( $mailbox, "", $item['name'] ) );
+            return $item;
+        }, json_decode( json_encode( imap_getmailboxes( $this->imap, $this->mailbox, "*" ) ), true ) );
+
+        return $folders;
+    }
 
     /**
      * @param bool|false $val
@@ -199,6 +214,21 @@ class Imap {
         return $emails;
     }
 
+    /**
+     * Wrapper for php imap_fetch_overview()
+     *
+     * @see http://php.net/manual/ru/function.imap-fetch-overview.php
+     * @param string $sequence a message sequence description,
+     * you can enumerate desired messages with the X,Y syntax,
+     * or retrieve all messages within an interval with the X:Y syntax
+     * @param int $options sequence will contain a sequence of message indices or UIDs,
+     * if this parameter is set to FT_UID.
+     * @return array
+     */
+    public function getMessagesOverview($sequence, $options = null)
+    {
+        return json_decode( json_encode( imap_fetch_overview( $this->imap, $sequence, $options ) ), true );
+    }
 
     /**
      * returns email by given id
@@ -227,7 +257,6 @@ class Imap {
         preg_match('/X-Priority: ([\d])/mi', imap_fetchheader($this->imap, $id), $matches);
         $priority = isset($matches[1]) ? $matches[1] : 3;
 
-
         // get email data
         $subject = '';
         if ( isset($header->subject) && strlen($header->subject) > 0 ) {
@@ -243,11 +272,13 @@ class Imap {
             'subject'   => $subject,
             'priority'  => $priority,
             'uid'       => $uid,
-            'msgno'       => $id,
-            'flagged'   => strlen(trim($header->Flagged))>0,
-            'unread'    => strlen(trim($header->Unseen))>0,
-            'answered'  => strlen(trim($header->Answered))>0,
-            'deleted'   => strlen(trim($header->Deleted))>0
+            'msgno'     => $id,
+            'recent'    => (int)(strlen(trim($header->Recent))>0),
+            'seen'      => (int)(!(strlen(trim($header->Unseen))>0)),
+            'flagged'   => (int)(strlen(trim($header->Flagged))>0),
+            'answered'  => (int)(strlen(trim($header->Answered))>0),
+            'deleted'   => (int)(strlen(trim($header->Deleted))>0),
+            'draft'     => (int)(strlen(trim($header->Draft))>0)
         );
 
         if (isset($header->cc)) {
@@ -801,12 +832,13 @@ class Imap {
 
                 $longName = '';
                 foreach ($part->dparameters as $paramItem) {
-                    $longName .= $paramItem->value;
+                    if ( isset( $paramItem->attribute ) && strpos( strtolower( $paramItem->attribute ), 'filename' ) !== FALSE ) $longName .= $paramItem->value;
                 }
 
 
                 $attachmentDetails = array(
-                    "name"          => $longName,
+                    "name"          => str_replace( "utf-8''", "", urldecode( $longName ) ),
+                    //"name"          => $longName,
                     "partNum"       => $partNum,
                     "enc"           => $partStruct->encoding,
                     "size"          => $part->bytes,
@@ -823,10 +855,10 @@ class Imap {
             $disposition = empty($reference) ? 'attachment' : 'inline';
             if ($disposition == "inline") { $this->inline = true; }
 
-            if ( $part->ifdparameters && count($part->dparameters)){
+            if ( $part->ifdparameters && count( $part->dparameters ) ) {
                 $name = '';
                 foreach ($part->dparameters as $paramItem) {
-                    $name .= $paramItem->value;
+                    if ( isset( $paramItem->attribute ) && strpos( strtolower( $paramItem->attribute ), 'filename' ) !== FALSE ) $name .= $paramItem->value;
                 }
                 //$name = $part->dparameters[0]->value;
             } elseif ($part->ifparameters && count($part->parameters)) {
@@ -836,7 +868,8 @@ class Imap {
             }
 
             $attachmentDetails = array(
-                "name"          => $name,
+                "name"          => str_replace( "utf-8''", "", urldecode( $name ) ),
+                //"name"          => $name,
                 "partNum"       => $partNum,
                 "enc"           => $partStruct->encoding,
                 "size"          => $part->bytes,
@@ -860,16 +893,20 @@ class Imap {
 
         $html_embed = $email['body'];
 
-        foreach ($email['attachments'] as $key => $attachment) {
-            if ($attachment['disposition'] == 'inline' && !empty($attachment['reference'])){
-                $file = $this->getAttachment($email['uid'] , $key);
+        if ( isset($email['attachments'] ) )
+        {
+            foreach ($email['attachments'] as $key => $attachment) {
+                if ($attachment['disposition'] == 'inline' && !empty($attachment['reference'])){
+                    $file = $this->getAttachment($email['uid'] , $key);
 
-                $reference = str_replace(array("<", ">"), "", $attachment['reference']);
-                $img_embed = "data:image/" . strtolower($file['type']) . ";base64," . base64_encode($file['content']);
+                    $reference = str_replace(array("<", ">"), "", $attachment['reference']);
+                    $img_embed = "data:image/" . strtolower($file['type']) . ";base64," . base64_encode($file['content']);
 
-                $html_embed = str_replace("cid:" . $reference, $img_embed, $html_embed);
+                    $html_embed = str_replace("cid:" . $reference, $img_embed, $html_embed);
+                }
             }
         }
+
         return $html_embed;
     }
 
