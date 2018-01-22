@@ -553,8 +553,7 @@ class Imap {
      */
     protected function getTrash()
     {
-
-        foreach ( $this->getFolders() as $folder ) if ( in_array( strtolower( $folder ), array( 'trash', 'inbox.trash', 'papierkorb' ) ) ) return $folder;
+        foreach ( $this->getFolders() as $folder ) if ( in_array( strtolower( $folder ), array( 'trash', 'inbox.trash', 'papierkorb', 'papelera' ) ) ) return $folder;
 
         // no trash folder found? create one
         $this->addFolder( 'Trash' );
@@ -915,6 +914,15 @@ class Imap {
     public function getConnection()
     {
         return $this->isConnected() ? $this->imap : false;
+    }
+
+    /**
+     * returns $folder variable content.
+     *
+     * @return string foldername
+     */
+    public function getFolderVar() {
+        return $this->folder;
     }
 
 }
