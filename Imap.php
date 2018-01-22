@@ -859,7 +859,7 @@ class Imap {
             }
             else
             {
-                $name = "unknown";
+                $name = "unknown" . strtolower( $part->subtype );
             }
 
             $attachmentDetails = array(
