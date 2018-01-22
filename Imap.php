@@ -97,6 +97,7 @@ class Imap {
     public function selectFolder( $folder )
     {
         $result = imap_reopen( $this->imap, $this->mailbox . $folder );
+
         if ( $result === true ) $this->folder = $folder;
 
         return $result;
@@ -328,9 +329,19 @@ class Imap {
      */
     public function deleteMessages( $ids )
     {
-        if ( imap_mail_move( $this->imap, implode( ",", $ids ), $this->getTrash(), CP_UID ) == false ) return false;
+        if ( $this->getTrash() == $this->folder )
+        {
+            if ( imap_delete( $this->imap, implode( ",", $ids ), FT_UID ) === false ) return false;
 
-        return imap_expunge( $this->imap );
+            return imap_expunge( $this->imap );
+
+        }
+        else
+        {
+            if ( imap_mail_move( $this->imap, implode( ",", $ids ), $this->getTrash(), CP_UID ) == false ) return false;
+
+            return imap_expunge( $this->imap );
+        }
     }
 
     /**
@@ -378,7 +389,6 @@ class Imap {
         $flags .= ( strlen( trim( $header->Draft ) ) > 0 ? "\\Draft " : '' );
         $flags .= ( ( $seen == true ) ? '\\Seen ' : ' ');
 
-        //echo "\n<br />".$id.": ".$flags;
         imap_clearflag_full( $this->imap, $id, '\\Seen', ST_UID );
         return imap_setflag_full( $this->imap, $id, trim( $flags ), ST_UID );
     }
@@ -551,7 +561,7 @@ class Imap {
      *
      * @return string trash folder name
      */
-    protected function getTrash()
+    public function getTrash()
     {
         foreach ( $this->getFolders() as $folder ) if ( in_array( strtolower( $folder ), array( 'trash', 'inbox.trash', 'papierkorb', 'papelera' ) ) ) return $folder;
 
