@@ -826,7 +826,7 @@ class Imap {
                 foreach ( $part->dparameters as $paramItem ) if ( isset( $paramItem->attribute ) && strpos( strtolower( $paramItem->attribute ), 'filename' ) !== FALSE ) $longName .= $paramItem->value;
 
                 $attachmentDetails = array(
-                    "name"          => str_replace( "utf-8''", "", urldecode( $longName ) ),
+                    "name"          => str_replace( ["utf-8''", "UTF-8''"], "", $longName ),
                     //"name"          => $longName,
                     "partNum"       => $partNum,
                     "enc"           => $partStruct->encoding,
@@ -859,11 +859,11 @@ class Imap {
             }
             else
             {
-                $name = "unknown" . strtolower( $part->subtype );
+                $name = "unknown." . strtolower( $part->subtype );
             }
 
             $attachmentDetails = array(
-                "name"          => str_replace( "utf-8''", "", urldecode( $name ) ),
+                "name"          => str_replace( ["utf-8''", "UTF-8''"], "", $name ),
                 //"name"          => $name,
                 "partNum"       => $partNum,
                 "enc"           => $partStruct->encoding,
