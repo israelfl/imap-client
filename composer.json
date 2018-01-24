@@ -3,7 +3,7 @@
     "description": "Simple but powerful Imap client.",
     "type": "php-class",
     "keywords": ["php","class","imap","mail"],
-    "license": "MIT License",
+    "license": "MIT",
     "authors": [
         {
             "name": "Israel Falcón",
