@@ -563,7 +563,7 @@ class Imap {
      */
     public function getTrash()
     {
-        foreach ( $this->getFolders() as $folder ) if ( in_array( strtolower( $folder ), array( 'trash', 'inbox.trash', 'papierkorb', 'papelera' ) ) ) return $folder;
+        foreach ( $this->getFolders() as $folder ) if ( $this->strposArr( strtolower( $folder ), ['trash', 'inbox.trash', 'papierkorb', 'papelera'] ) !== FALSE  ) return $folder;
 
         // no trash folder found? create one
         $this->addFolder( 'Trash' );
@@ -576,12 +576,12 @@ class Imap {
      *
      * @return string sent folder name
      */
-    protected function getSent()
+    public function getSent()
     {
-        foreach ( $this->getFolders() as $folder ) if ( in_array( strtolower( $folder ), array( 'sent', 'gesendet', 'inbox.gesendet' ) ) ) return $folder;
+        foreach ( $this->getFolders() as $folder ) if ( $this->strposArr( strtolower( $folder ), ['sent', 'gesendet', 'inbox.gesendet', 'enviados'] ) !== FALSE  ) return $folder;
 
         // no sent folder found? create one
-        $this->addFolder( 'Sent' );
+        //$this->addFolder( 'Sent' );
 
         return 'Sent';
     }
@@ -933,6 +933,26 @@ class Imap {
      */
     public function getFolderVar() {
         return $this->folder;
+    }
+
+    /**
+     * Find the position of the first occurrence of an array of substring in a string
+     *
+     * @param string $haystack <p>The string to search in.</p>
+     * @param mixed $needle <p>If <i>needle</i> is not an array, it is converted to an array.</p>
+     *
+     * @return mixed the position of where the needle exists relative to the beginning of
+     * the <i>haystack</i> array.
+     * Also note that string positions start at 0, and not 1.
+     * </p>
+     * <p>Returns <b>FALSE</b> if the needle was not found.</p>
+     */
+    public function strposArr( $haystack, $needle )
+    {
+        if ( !is_array( $needle ) ) $needle = array( $needle );
+        foreach ( $needle as $what ) if ( ( $pos = strpos( $haystack, $what ) ) !==false ) return $pos;
+
+        return false;
     }
 
 }
