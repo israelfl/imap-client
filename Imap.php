@@ -272,6 +272,8 @@ class Imap {
 
         if ( isset( $header->cc ) ) $email['cc'] = $this->arrayToAddress( $header->cc );
 
+        if ( isset( $header->bcc ) ) $email['bcc'] = $this->arrayToAddress( $header->bcc );
+
         // get email body
         if ( $withbody === true )
         {
