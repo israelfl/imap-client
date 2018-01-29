@@ -257,6 +257,7 @@ class Imap {
         $email = array(
             'to'        => isset( $header->to ) ? $this->arrayToAddress( $header->to ) : '',
             'from'      => $this->toAddress( $header->from[0] ),
+            'raw_cc'    => $header->cc,
             'date'      => $header->date,
             'subject'   => $subject,
             'priority'  => $priority,
@@ -528,11 +529,28 @@ class Imap {
             foreach ( $this->getMessages( false ) as $message )
             {
                 $emails[] = $message['from'];
-                $emails = array_merge( $emails, $message['to'] );
+                if ( $message['to'] != '' ) $emails = array_merge( $emails, $message['to'] );
                 if ( isset($message['cc'] ) ) $emails = array_merge( $emails, $message['cc'] );
             }
         }
         $this->selectFolder( $saveCurrentFolder );
+        return array_unique( $emails );
+    }
+
+    /**
+     * returns all email addresses from current folder
+     *
+     * @return array with all email addresses or false on error
+     */
+    public function getFolderEmailAddresses()
+    {
+        $emails = array();
+        foreach ( $this->getMessages( false ) as $message )
+        {
+            $emails[] = $message['from'];
+            if ( $message['to'] != '' ) $emails = array_merge( $emails, $message['to'] );
+            if ( isset( $message['cc'] ) ) $emails = array_merge( $emails, $message['cc'] );
+        }
         return array_unique( $emails );
     }
 
@@ -565,7 +583,7 @@ class Imap {
      */
     public function getTrash()
     {
-        foreach ( $this->getFolders() as $folder ) if ( $this->strposArr( strtolower( $folder ), ['trash', 'inbox.trash', 'papierkorb', 'papelera'] ) !== FALSE  ) return $folder;
+        foreach ( $this->getFolders() as $folder ) if ( $this->strposArr( strtolower( $folder ), ['trash', 'inbox.trash', 'papierkorb', 'papelera', 'deleted'] ) !== FALSE  ) return $folder;
 
         // no trash folder found? create one
         $this->addFolder( 'Trash' );
