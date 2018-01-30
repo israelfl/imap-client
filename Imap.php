@@ -42,6 +42,12 @@ class Imap {
      */
     protected $embed = false;
 
+    /** @var string With imap error message. */
+    public $error;
+
+    /** @var array With imap errors messages. */
+    public $errors;
+
     /**
      * initialize imap helper
      *
@@ -58,6 +64,7 @@ class Imap {
 
         $this->mailbox = "{" . $mailbox . $enc . "}";
         $this->imap = @imap_open( $this->mailbox, $username, $password );
+
     }
 
     /**
@@ -65,7 +72,12 @@ class Imap {
      */
     function __destruct()
     {
-        if ( $this->imap!==false ) imap_close( $this->imap );
+        if ( $this->imap!==false )
+        {
+            set_error_handler( [$this, 'errorHandler'] );
+            imap_close( $this->imap );
+            restore_error_handler();
+        }
     }
 
     /**
@@ -120,6 +132,8 @@ class Imap {
      * @return array with folders information.
      */
     public function getFoldersDetails() {
+        if ( !is_resource( $this->imap ) ) return [];
+
         $mailbox = $this->mailbox;
         $folders = array_map( function( $item )  use ( $mailbox ) {
             $item['name'] = imap_mutf7_to_utf8( str_replace( $mailbox, "", $item['name'] ) );
@@ -975,4 +989,9 @@ class Imap {
         return false;
     }
 
+    public function errorHandler( $errno, $errstr, $errfile, $errline )
+    {
+        $this->error = $errstr;
+        $this->errors[] = $errstr;
+    }
 }
