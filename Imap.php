@@ -42,12 +42,6 @@ class Imap {
      */
     protected $embed = false;
 
-    /** @var string With imap error message. */
-    public $error;
-
-    /** @var array With imap errors messages. */
-    public $errors;
-
     /**
      * initialize imap helper
      *
@@ -64,7 +58,6 @@ class Imap {
 
         $this->mailbox = "{" . $mailbox . $enc . "}";
         $this->imap = @imap_open( $this->mailbox, $username, $password );
-
     }
 
     /**
@@ -72,12 +65,7 @@ class Imap {
      */
     function __destruct()
     {
-        if ( $this->imap!==false )
-        {
-            set_error_handler( [$this, 'errorHandler'] );
-            imap_close( $this->imap );
-            restore_error_handler();
-        }
+        if ( $this->imap!==false ) imap_close( $this->imap );
     }
 
     /**
@@ -202,19 +190,6 @@ class Imap {
         $emails = array();
         for ( $i = 1; $i <= $count; $i++ ) $emails[]= $this->formatMessage( $i, $withbody );
 
-        // sort emails descending by date
-        // usort($emails, function($a, $b) {
-        // try {
-        // $datea = new \DateTime($a['date']);
-        // $dateb = new \DateTime($b['date']);
-        // } catch(\Exception $e) {
-        // return 0;
-        // }
-        // if ($datea == $dateb)
-        // return 0;
-        // return $datea < $dateb ? 1 : -1;
-        // });
-
         return $emails;
     }
 
@@ -231,7 +206,9 @@ class Imap {
      */
     public function getMessagesOverview( $sequence, $options = null )
     {
-        return json_decode( json_encode( imap_fetch_overview( $this->imap, $sequence, $options ) ), true );
+        $msgs =  imap_fetch_overview( $this->imap, $sequence, $options );
+        foreach ( $msgs  as $msgKey => $msgItem ) $msgs[$msgKey] = ( array ) $msgItem;
+        return $msgs;
     }
 
     /**
@@ -272,7 +249,7 @@ class Imap {
             'to'        => isset( $header->to ) ? $this->arrayToAddress( $header->to ) : '',
             'from'      => $this->toAddress( $header->from[0] ),
             'raw_cc'    => $header->cc,
-            'date'      => $header->date,
+            'date'      => ( $header->date != '' ) ? $header->date : date( 'Y-m-d H:i:s', $header->udate ),
             'subject'   => $subject,
             'priority'  => $priority,
             'uid'       => $uid,
@@ -649,7 +626,7 @@ class Imap {
      */
     protected function attachments2name( $attachments )
     {
-        $names = array();
+        $names = [];
         foreach ( $attachments as $attachment )
         {
             if ( isset( $attachment[0]['name'] ) )
@@ -663,12 +640,15 @@ class Imap {
             }
             else
             {
-                $names[] = array(
-                    'name' => $attachment['name'],
-                    'size' => $attachment['size'],
-                    "disposition" => $attachment['disposition'],
-                    "reference" => $attachment['reference']
-                );
+                if ( isset( $attachment['name'] ) && isset( $attachment['size'] ) && isset( $attachment['disposition'] ) && isset( $attachment['reference'] ) )
+                {
+                    $names[] = array(
+                        'name' => $attachment['name'],
+                        'size' => $attachment['size'],
+                        "disposition" => $attachment['disposition'],
+                        "reference" => $attachment['reference']
+                    );
+                }
             }
         }
         return $names;
@@ -857,7 +837,7 @@ class Imap {
                 if ( strtolower( $part->disposition ) == 'inline' ) $this->inline = true;
 
                 $longName = '';
-                foreach ( $part->dparameters as $paramItem ) if ( isset( $paramItem->attribute ) && strpos( strtolower( $paramItem->attribute ), 'filename' ) !== FALSE ) $longName .= $paramItem->value;
+                if ( isset( $part->dparameters ) ) foreach ( $part->dparameters as $paramItem ) if ( isset( $paramItem->attribute ) && strpos( strtolower( $paramItem->attribute ), 'filename' ) !== FALSE ) $longName .= $paramItem->value;
 
                 $attachmentDetails = array(
                     "name"          => str_replace( ["utf-8''", "UTF-8''"], "", $longName ),
@@ -989,9 +969,4 @@ class Imap {
         return false;
     }
 
-    public function errorHandler( $errno, $errstr, $errfile, $errline )
-    {
-        $this->error = $errstr;
-        $this->errors[] = $errstr;
-    }
 }
