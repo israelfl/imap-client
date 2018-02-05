@@ -255,7 +255,7 @@ class Imap {
             'uid'       => $uid,
             'msgno'     => $id,
             'recent'    => ( int )( strlen( trim( $header->Recent ) ) > 0 ),
-            'seen'      => ( int )(!( strlen( trim( $header->Unseen) ) > 0 ) ),
+            'seen'      => ( int )( !( strlen( trim( $header->Unseen ) ) > 0 ) ),
             'flagged'   => ( int )( strlen( trim( $header->Flagged ) ) > 0 ),
             'answered'  => ( int )( strlen( trim( $header->Answered ) ) > 0 ),
             'deleted'   => ( int )( strlen( trim( $header->Deleted ) ) > 0 ),
@@ -382,6 +382,7 @@ class Imap {
         $flags .= ( strlen( trim( $header->Deleted ) ) > 0 ? "\\Deleted " : '' );
         $flags .= ( strlen( trim( $header->Draft ) ) > 0 ? "\\Draft " : '' );
         $flags .= ( ( $seen == true ) ? '\\Seen ' : ' ');
+        $flags .= ( ( $seen == true ) ? '\\Unseen ' : ' ');
 
         imap_clearflag_full( $this->imap, $id, '\\Seen', ST_UID );
         return imap_setflag_full( $this->imap, $id, trim( $flags ), ST_UID );
@@ -397,9 +398,7 @@ class Imap {
     public function getAttachment( $id, $index = 0 )
     {
         // find message
-        $attachments = false;
         $messageIndex = imap_msgno( $this->imap, $id );
-        $header = imap_headerinfo( $this->imap, $messageIndex ); // @TODO this is not used
         $mailStruct = imap_fetchstructure( $this->imap, $messageIndex );
         $attachments = $this->getAttachments( $this->imap, $messageIndex, $mailStruct, "" );
 
@@ -411,9 +410,7 @@ class Imap {
         $attachment = $attachments[$index];
 
         // get attachment body
-        $partStruct = imap_bodystruct( $this->imap, imap_msgno( $this->imap, $id ), $attachment['partNum'] );
-        //$filename = $partStruct->dparameters[0]->value; // @TODO this is not used
-        $message = imap_fetchbody( $this->imap, $id, $attachment['partNum'], FT_UID );
+        $message = imap_fetchbody( $this->imap, $id, $attachment['partNum'], FT_UID | FT_PEEK );
 
         switch ( $attachment['enc'] )
         {
