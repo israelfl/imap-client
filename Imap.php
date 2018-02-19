@@ -559,7 +559,11 @@ class Imap {
      */
     public function close()
     {
-        if ( $this->imap !== false ) imap_close( $this->imap );
+        if ( $this->imap !== false )
+        {
+            imap_close( $this->imap );
+            $this->imap = false;
+        }
     }
 
     // protected helpers
