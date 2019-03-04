@@ -16,7 +16,7 @@ class Imap {
      * imap connection
      * @var bool
      */
-    protected $imap = false;
+    public $imap = false;
 
     /**
      * mailbox url
@@ -382,7 +382,7 @@ class Imap {
         $flags .= ( strlen( trim( $header->Deleted ) ) > 0 ? "\\Deleted " : '' );
         $flags .= ( strlen( trim( $header->Draft ) ) > 0 ? "\\Draft " : '' );
         $flags .= ( ( $seen == true ) ? '\\Seen ' : ' ');
-        $flags .= ( ( $seen == true ) ? '\\Unseen ' : ' ');
+        $flags .= ( ( $seen == false ) ? '\\Unseen ' : ' ');
 
         imap_clearflag_full( $this->imap, $id, '\\Seen', ST_UID );
         return imap_setflag_full( $this->imap, $id, trim( $flags ), ST_UID );
